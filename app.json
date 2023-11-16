@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "PriceTest",
+    "slug": "PriceTest",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1647c297-9009-484b-af8b-4fc93c9bd622"
+      }
+    }
+  }
+}
