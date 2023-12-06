@@ -6,18 +6,22 @@ import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library'; //for saving to local system
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-function App({navigation,route}) {
+function App({route,navigation}) {
     const barcode = String(route.params.barcode.text);
+    const {barcode2} = route.params;
     const [itemData,setItemData] = useState([]);
     const [content,setContent] = useState([]);
     const isFocused = useIsFocused();
+
+    console.log('Barcode: '+ barcode);
+    console.log('Barcode 2: '+ barcode2);
 
     const askForFilePermission = async () => {
         try {
           //root Documents directory
           const uri = "content://com.android.externalstorage.documents/tree/primary%3ADocuments/document/primary%3ADocuments";
           const uriPictures = "content://com.android.externalstorage.documents/tree/primary%3ADocuments/document/primary%3ADocuments%2FItem%20Pictures";
-          
+
           //Request File Permissions
           const filePermissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(uri);
           // const mediaLibPermissions = await MediaLibrary.requestPermissionsAsync();
@@ -42,13 +46,13 @@ function App({navigation,route}) {
 
           // const content = await FileSystem.readAsStringAsync(file);
           const content2 = await FileSystem.readAsStringAsync(file2);
-          setContent(await FileSystem.readAsStringAsync(file2));
+          setContent(content2);
 
           // Do something with the file contents
           // console.log(content);
           // console.log(content2);
 
-          search(content);
+          search(content2);
         } catch (error) {
             console.warn('File System/Permission Error: \n'+ error);
         }
@@ -56,130 +60,123 @@ function App({navigation,route}) {
 
     const search = (data) => {
       // Declaring variables at start of function
+      const barcode = String(route.params.barcode.text);
       let itemName = '';
       let itemPrice = 0.00;
       // let itemStock = 0;
-      let barcodeValidation = isNaN(barcode);
       let price = 0.00;
       let vat = 0.00;
       const tax = 0.125;
+    
+      let i = 0;
+      const searchItemData = [];
 
-      console.log('Is barcode not a number: '+barcodeValidation);
+      // console.log('CSV Data: '+ JSON.stringify(data));
 
-      if (barcodeValidation == false) {
-          console.log('CSV Data: '+ JSON.stringify(data));
-  
-          //The data json variable holds the values of the csv as a single string value
-          //separated by , and \r\n for new rows.
-          //It is converted to an array where \r\n is used to separate indexes.
-          let dataStrng = String(data);
-          let dataRow = dataStrng.split('\r\n');
-  
-          //Pull the spreadsheet headers
-          let headers = dataRow[0].split(',');
-  
-          //Loop through the rest of the array to pull each row as an array with content
-          let content = [];
-          for (let f = 1,row=0; f < dataRow.length;f++,row++) {
-              let start = f;
-              content[row] = dataRow[start].split(',');
+      //The data json variable holds the values of the csv as a single string value
+      //separated by , and \r\n for new rows.
+      //It is converted to an array where \r\n is used to separate indexes.
+      let dataStrng = String(data);
+      let dataRow = dataStrng.split('\r\n');
+
+      //Pull the spreadsheet headers
+      let headers = dataRow[0].split(',');
+
+      //Loop through the rest of the array to pull each row as an array with content
+      let content = [];
+      for (let f = 1,row=0; f < dataRow.length;f++,row++) {
+          let start = f;
+          content[row] = dataRow[start].split(',');
+      }
+
+      const itemNumIndex = headers.indexOf('ItemNum');
+      const itemNameIndex = headers.indexOf('ItemName');
+      const itemPriceIndex = headers.indexOf('Price');
+      const itemTaxIndex = headers.indexOf('Tax_1');
+
+      if (itemNumIndex == -1) {
+        alert("Column not found: ItemNum is excepted.");
+      } else if (itemNameIndex == -1) {
+        alert("Column not found: ItemName is excepted.");
+      } else if (itemPriceIndex == -1) {
+        alert("Column not found: Price is excepted.");
+      } else if (itemTaxIndex == -1) {
+        alert("Column not found: Tax_1 is excepted.");
+      }
+
+      // Loop through the content and find item based on the barcode scan value,
+      // barcode
+      for (let index = 0; index < content.length; index++) {
+        if (itemNumIndex != -1) {
+          console.log("Content Row: " + content[index]);
+          if (content[index][itemNumIndex] == barcode) {
+              searchItemData[i] = content[index];
+              // console.log('searchItemData in loop: '+ searchItemData[i]);
+              console.warn('Barcode in loop: '+ barcode);
+              i++;
           }
+        } else {
+          alert('ItemNum header not found in CSV file.');
+        }
+      }
+      console.log('Search Item Data: '+ searchItemData);
 
-          let itemNumIndex = headers.indexOf('ItemNum');
-          let itemNameIndex = headers.indexOf('ItemName');
-          let itemPriceIndex = headers.indexOf('Price');
-          let itemTaxIndex = headers.indexOf('Tax_1');
+      // Save search item data in a form that can be used;
+      let searchItemStr = String(searchItemData[0]);
+      let searchItem = searchItemStr.split(',');
 
-          if (itemNumIndex == -1) {
-            alert("Column not found: ItemNum is excepted.");
-          } else if (itemNameIndex == -1) {
-            alert("Column not found: ItemName is excepted.");
-          } else if (itemPriceIndex == -1) {
-            alert("Column not found: Price is excepted.");
-          } else if (itemTaxIndex == -1) {
-            alert("Column not found: Tax_1 is excepted.");
-          }
+      console.log('Search Item: '+ searchItem);
 
-          // Loop through the content and find item based on the barcode scan value,
-          // barcode
-          let i = 0;
-          let searchItemData = [];
-          for (let index = 0; index < content.length; index++) {
-            if (itemNumIndex != -1) {
-              console.log("Content Row: " + content[index]);
-              if (content[index][itemNumIndex] == barcode) {
-                  searchItemData[i] = content[index];
-                  i++;
-              }
-            } else {
-              alert('ItemNum header not found in CSV file.');
-            }
-          }
-          console.log('Search Item Data: '+ searchItemData);
+      // If searchItem returns empty use default empty values
+      // Else save Item values and calculate price
+      if (searchItem[0] != "undefined") {
+        //Save the Items Name
+        if (itemNameIndex > -1) {
+          itemName = searchItem[itemNameIndex];
+        } else {
+          alert('ItemName header not found in CSV file.');
+        }
 
-          // Save search item data in a form that can be used;
-          let searchItemStr = String(searchItemData[0]);
-          let searchItem = searchItemStr.split(',');
+        // Calculate VAT
+        if (itemPriceIndex > -1) {
+          price = Number(searchItem[itemPriceIndex]); 
+          vat = price * tax;
+          console.log('Price: '+ price+'\n Search Item with index: '+searchItem[itemPriceIndex]+'\n VAT: '+vat);
+        } else {
+          alert('Price header not found in CSV file.');
+        }
 
-          console.log('Search Item: '+ searchItem);
-
-          //Save the Items Value
-          if (itemNameIndex > -1) {
-            itemName = searchItem[itemNameIndex];
+        // Calculate Price
+        if (itemTaxIndex > -1) {
+          if (searchItem[itemTaxIndex] == 'True') {
+            let iSales = price + vat;
+            itemPrice = iSales.toFixed(2);
           } else {
-            alert('ItemName header not found in CSV file.');
+            let iSales = price;
+            itemPrice = iSales.toFixed(2);
           }
+        } else {
+          alert('Tax_1 header not found in CSV file.');
+        }
 
-          if (itemPriceIndex > -1) {
-            price = Number(searchItem[itemPriceIndex]); 
-            vat = price * tax;
-            console.log('Price: '+ price+'\n Search Item with index: '+searchItem[itemPriceIndex]+'\n VAT: '+vat);
-          } else {
-            alert('Price header not found in CSV file.');
-          }
-
-          if (itemTaxIndex > -1) {
-            if (searchItem[itemTaxIndex] == 'True') {
-              let iSales = price + vat;
-              itemPrice = iSales.toFixed(2);
-            } else {
-              let iSales = price;
-              itemPrice = iSales.toFixed(2);
-            }
-          } else {
-            alert('Tax_1 header not found in CSV file.');
-          }
-
-          setItemData([barcode,itemName,itemPrice]);
-          console.log('Item Info: '+itemData);
+        // Pass Values to Template
+        setItemData([barcode,itemName,itemPrice]);
+        console.log('Item Info: '+itemData);
       } else {
-          setItemData(['000','Item not found','0.00']);
+        setItemData(['000','Item not found','0.00']);
       }
     };
   
     // Launch the search function and
     // Navigate to the specified screen after 15 seconds
-    // useEffect(() => {
-    //   askForFilePermission();
-    //   // search();
-
-    //   if (isFocused == true) {
-    //     alert('Going Back To Scanner');
-    //     // return () => clearTimeout(timeout);
-    //     const timeout = setTimeout(() => {
-    //       // isFocused = false;
-    //       navigation.goBack('Scanner'); // the name of the screen you want to navigate to
-    //     }, 10000); // the number of milliseconds you want to wait before navigating  1000ms=1s
-    //   }
-    // }, [isFocused]); // barcode,navigation,
-
     React.useEffect(() => {
       const test = navigation.addListener('focus', () => {
         //Screen is focused, Do something
-        if (content == null) {
+        console.log('Content Values: \n'+ content);
+        if (content.length == 0) {
           askForFilePermission();
         } else {
-          search(content2);
+          search(content);
         }
         // askForFilePermission();
         // return () => clearTimeout(timeout);
@@ -198,7 +195,7 @@ function App({navigation,route}) {
         <View style={styles.container}>
           <Text>{itemData[1]}.</Text>
           <Text style={{marginBottom: 20}}>Please Scan Another Item.</Text>
-          <Button title='Scan Again?' onPress={() => navigation.goBack('Scanner')}/>
+          {/* <Button title='Scan Again?' onPress={() => navigation.goBack('Scanner')}/> */}
         </View>
       )
     }

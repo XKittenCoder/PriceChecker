@@ -45,11 +45,11 @@ export default function App({navigation}) {
   }, [data]);
 
   //What happens when we scan the barcode
-  const handleScanned = useCallback(({data}) => {
-    setScanned(true);
-    setText(data);
-    console.log('With Data from input: '+data);
-  }, [data]);
+  // const handleScanned = useCallback(({data}) => {
+  //   setScanned(true);
+  //   setText(data);
+  //   console.log('With Data from input: '+data);
+  // }, [data]);
 
   //What happens when we press scan again
   const handleRescan = () => {
@@ -101,6 +101,7 @@ export default function App({navigation}) {
         <Button title='See Item Info' onPress={() => navigation.navigate('Info', { barcode: {text} }) } />
         {/* {scanned && <Button title={'Scan Again?'} onPress={() => setScanned(false) && setText('Not scanned yet')} color='tomato' />} */}
         {scanned && <Button title={'Scan Again?'} onPress={() => handleRescan()} color='tomato' />}
+        {scanned && <Button title={'Scan Again Test?'} onPress={() => {setScanned(false); setText('Not Scanned Yet');}} color='tomato' />}
       </View>
       <StatusBar style="auto" />
     </View>
