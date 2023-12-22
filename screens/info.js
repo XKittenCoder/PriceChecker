@@ -5,13 +5,40 @@ import { useIsFocused } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system';
 import * as MediaLibrary from 'expo-media-library'; //for saving to local system
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
+
+export const useFocus = () => {
+  // Variables
+  const navigation = useNavigation();
+  const [focusState, setFocusState] = useState(false);
+  const [focusCount, setFocusCount] = useState(0);
+  const isFirstTime = focusCount === 1;
+  
+  useEffect(() => {
+    //
+    const unsubscribeFocus = navigation.addListener('focus', () => {
+      setFocusState(true);
+      setFocusCount(prev => prev + 1);
+    });
+    const unsubscribeBlur = navigation.addListener('blur', () => {
+      setFocusState(false);
+    });
+    return () => {
+      test();
+      unsubscribeFocus();
+      unsubscribeBlur();
+    };
+  });
+  return {focusState, isFirstTime, focusCount};
+}
 
 function App({route,navigation}) {
     const barcode = String(route.params.barcode.text);
     const {barcode2} = route.params;
     const [itemData,setItemData] = useState([]);
-    const [content,setContent] = useState([]);
+    const [contentCSV,setContentCSV] = useState([]);
     const isFocused = useIsFocused();
+    const {focusCount, focusState} = useFocus();
 
     console.log('Barcode: '+ barcode);
     console.log('Barcode 2: '+ barcode2);
@@ -46,7 +73,7 @@ function App({route,navigation}) {
 
           // const content = await FileSystem.readAsStringAsync(file);
           const content2 = await FileSystem.readAsStringAsync(file2);
-          setContent(content2);
+          setContentCSV(await FileSystem.readAsStringAsync(file2));
 
           // Do something with the file contents
           // console.log(content);
@@ -60,7 +87,6 @@ function App({route,navigation}) {
 
     const search = (data) => {
       // Declaring variables at start of function
-      const barcode = String(route.params.barcode.text);
       let itemName = '';
       let itemPrice = 0.00;
       // let itemStock = 0;
@@ -77,6 +103,7 @@ function App({route,navigation}) {
       //separated by , and \r\n for new rows.
       //It is converted to an array where \r\n is used to separate indexes.
       let dataStrng = String(data);
+      // let dataStrng = String(contentCSV);
       let dataRow = dataStrng.split('\r\n');
 
       //Pull the spreadsheet headers
@@ -165,6 +192,8 @@ function App({route,navigation}) {
       } else {
         setItemData(['000','Item not found','0.00']);
       }
+
+      return itemData
     };
   
     // Launch the search function and
@@ -178,16 +207,29 @@ function App({route,navigation}) {
         } else {
           search(content);
         }
-        // askForFilePermission();
-        // return () => clearTimeout(timeout);
+
         const timeout = setTimeout(() => {
           // isFocused = false;
           alert('Going Back To Scanner');
           navigation.goBack('Scanner'); // the name of the screen you want to navigate to
         }, 10000); // the number of milliseconds you want to wait before navigating 
       });
-      return test
     }, [navigation]);
+
+    useEffect(() => {
+      if (focusCount === 1 && focusState) {
+        //This is the first time focus => init screen here
+        askForFilePermission();
+      }
+    });
+
+    useEffect(() => {
+      if (focusCount > 1 && focusState) {
+        // trigger when you navigate back from another screen
+        // you can background reload data here
+        search(contentCSV);
+      }
+    })
   
     //Check itemData and return the appropriate screens
     if (itemData[1] == 'Item not found') {

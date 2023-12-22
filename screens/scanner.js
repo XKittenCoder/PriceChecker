@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import React, {useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, Button, TextInput } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, SafeAreaView, Button, TextInput } from 'react-native';
 import {BarCodeScanner} from 'expo-barcode-scanner';
 import { useIsFocused } from '@react-navigation/native';
+import { RNRestart } from 'react-native-restart';
 
 export default function App({navigation}) {
   const [hasPermission, setHasPermission] = useState(false);
@@ -57,6 +58,11 @@ export default function App({navigation}) {
     setText('Not Scanned Yet.');
   };
 
+  const restart = () => {
+    console.log('Inside Restart Module: '+ JSON.stringify(RNRestart));
+    RNRestart.restart();
+  }
+
   //Check permissions and return the appropriate screens
   if (hasPermission == null){
     return(
@@ -80,7 +86,7 @@ export default function App({navigation}) {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {isFocused && (
         <View style={styles.barcodebox}>
           <BarCodeScanner 
@@ -97,14 +103,15 @@ export default function App({navigation}) {
         defaultValue={text}
         activeUnderlineColor='red'
       />
-      <View styles={styles.buttonContainer} rowGap={30} >
+      <ScrollView styles={styles.buttonContainer} rowGap={30} >
         <Button title='See Item Info' onPress={() => navigation.navigate('Info', { barcode: {text} }) } />
         {/* {scanned && <Button title={'Scan Again?'} onPress={() => setScanned(false) && setText('Not scanned yet')} color='tomato' />} */}
         {scanned && <Button title={'Scan Again?'} onPress={() => handleRescan()} color='tomato' />}
         {scanned && <Button title={'Scan Again Test?'} onPress={() => {setScanned(false); setText('Not Scanned Yet');}} color='tomato' />}
-      </View>
+        {scanned && <Button title={'Restart?'} onPress={() => restart()} color='tomato' />}
+      </ScrollView>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
