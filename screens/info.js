@@ -7,38 +7,38 @@ import * as MediaLibrary from 'expo-media-library'; //for saving to local system
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 
-export const useFocus = () => {
-  // Variables
-  const navigation = useNavigation();
-  const [focusState, setFocusState] = useState(false);
-  const [focusCount, setFocusCount] = useState(0);
-  const isFirstTime = focusCount === 1;
+// export const useFocus = () => {
+//   // Variables
+//   const navigation = useNavigation();
+//   const [focusState, setFocusState] = useState(false);
+//   const [focusCount, setFocusCount] = useState(0);
+//   const isFirstTime = focusCount === 1;
   
-  useEffect(() => {
-    //
-    const unsubscribeFocus = navigation.addListener('focus', () => {
-      setFocusState(true);
-      setFocusCount(prev => prev + 1);
-    });
-    const unsubscribeBlur = navigation.addListener('blur', () => {
-      setFocusState(false);
-    });
-    return () => {
-      test();
-      unsubscribeFocus();
-      unsubscribeBlur();
-    };
-  });
-  return {focusState, isFirstTime, focusCount};
-}
+//   useEffect(() => {
+//     //
+//     const unsubscribeFocus = navigation.addListener('focus', () => {
+//       setFocusState(true);
+//       setFocusCount(prev => prev + 1);
+//     });
+//     const unsubscribeBlur = navigation.addListener('blur', () => {
+//       setFocusState(false);
+//     });
+//     return () => {
+//       test();
+//       unsubscribeFocus();
+//       unsubscribeBlur();
+//     };
+//   });
+//   return {focusState, isFirstTime, focusCount};
+// }
 
 function App({route,navigation}) {
     const barcode = String(route.params.barcode.text);
     const {barcode2} = route.params;
     const [itemData,setItemData] = useState([]);
-    const [contentCSV,setContentCSV] = useState([]);
+    const [content,setContent] = useState([]);
     const isFocused = useIsFocused();
-    const {focusCount, focusState} = useFocus();
+    // const {focusCount, focusState} = useFocus();
 
     console.log('Barcode: '+ barcode);
     console.log('Barcode 2: '+ barcode2);
@@ -71,15 +71,14 @@ function App({route,navigation}) {
           // Path to file named 'export_inventory5.csv' in android 'Document' directory
           file2 = "content://com.android.externalstorage.documents/tree/primary%3ADocuments/document/primary%3ADocuments%2Fexport_inventory7.csv";
 
-          // const content = await FileSystem.readAsStringAsync(file);
-          const content2 = await FileSystem.readAsStringAsync(file2);
-          setContentCSV(await FileSystem.readAsStringAsync(file2));
+          const contentTxt = await FileSystem.readAsStringAsync(file2);
+          setContent(contentTxt);
 
           // Do something with the file contents
-          // console.log(content);
+          console.log(content);
           // console.log(content2);
-
-          search(content2);
+          search(content);
+          // return content
         } catch (error) {
             console.warn('File System/Permission Error: \n'+ error);
         }
@@ -110,10 +109,10 @@ function App({route,navigation}) {
       let headers = dataRow[0].split(',');
 
       //Loop through the rest of the array to pull each row as an array with content
-      let content = [];
+      let searchContent = [];
       for (let f = 1,row=0; f < dataRow.length;f++,row++) {
           let start = f;
-          content[row] = dataRow[start].split(',');
+          searchContent[row] = dataRow[start].split(',');
       }
 
       const itemNumIndex = headers.indexOf('ItemNum');
@@ -133,11 +132,11 @@ function App({route,navigation}) {
 
       // Loop through the content and find item based on the barcode scan value,
       // barcode
-      for (let index = 0; index < content.length; index++) {
+      for (let index = 0; index < searchContent.length; index++) {
         if (itemNumIndex != -1) {
-          console.log("Content Row: " + content[index]);
-          if (content[index][itemNumIndex] == barcode) {
-              searchItemData[i] = content[index];
+          console.log("Content Row: " + searchContent[index]);
+          if (searchContent[index][itemNumIndex] == barcode) {
+              searchItemData[i] = searchContent[index];
               // console.log('searchItemData in loop: '+ searchItemData[i]);
               console.warn('Barcode in loop: '+ barcode);
               i++;
@@ -198,15 +197,23 @@ function App({route,navigation}) {
   
     // Launch the search function and
     // Navigate to the specified screen after 15 seconds
+    let focusCount = 0;
     React.useEffect(() => {
       const test = navigation.addListener('focus', () => {
         //Screen is focused, Do something
+        focusCount = focusCount + 1;
         console.log('Content Values: \n'+ content);
         if (content.length == 0) {
           askForFilePermission();
         } else {
           search(content);
         }
+
+        // if (focusCount == 1) {
+        //   askForFilePermission();
+        // } else {
+        //   search(content);
+        // }
 
         const timeout = setTimeout(() => {
           // isFocused = false;
@@ -216,20 +223,20 @@ function App({route,navigation}) {
       });
     }, [navigation]);
 
-    useEffect(() => {
-      if (focusCount === 1 && focusState) {
-        //This is the first time focus => init screen here
-        askForFilePermission();
-      }
-    });
+    // useEffect(() => {
+    //   if (focusCount === 1 && focusState) {
+    //     //This is the first time focus => init screen here
+    //     askForFilePermission();
+    //   }
+    // });
 
-    useEffect(() => {
-      if (focusCount > 1 && focusState) {
-        // trigger when you navigate back from another screen
-        // you can background reload data here
-        search(contentCSV);
-      }
-    })
+    // useEffect(() => {
+    //   if (focusCount > 1 && focusState) {
+    //     // trigger when you navigate back from another screen
+    //     // you can background reload data here
+    //     search(contentCSV);
+    //   }
+    // });
   
     //Check itemData and return the appropriate screens
     if (itemData[1] == 'Item not found') {
