@@ -33,15 +33,10 @@ import { useNavigation } from '@react-navigation/native';
 // }
 
 function App({route,navigation}) {
-    const barcode = String(route.params.barcode.text);
-    const {barcode2} = route.params;
     const [itemData,setItemData] = useState([]);
     const [content,setContent] = useState([]);
     const isFocused = useIsFocused();
     // const {focusCount, focusState} = useFocus();
-
-    console.log('Barcode: '+ barcode);
-    console.log('Barcode 2: '+ barcode2);
 
     const askForFilePermission = async () => {
         try {
@@ -52,9 +47,10 @@ function App({route,navigation}) {
           //Request File Permissions
           const filePermissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(uri);
           // const mediaLibPermissions = await MediaLibrary.requestPermissionsAsync();
+          console.log('Permissions File: '+JSON.stringify(filePermissions));
 
           // Find files in a folder
-          if (filePermissions == true) {
+          if (filePermissions.granted == true) {
             const files = await FileSystem.StorageAccessFramework.readDirectoryAsync(uri);
             console.log('Files in document folder: ' + files);
           } else {
@@ -72,12 +68,10 @@ function App({route,navigation}) {
           file2 = "content://com.android.externalstorage.documents/tree/primary%3ADocuments/document/primary%3ADocuments%2Fexport_inventory7.csv";
 
           const contentTxt = await FileSystem.readAsStringAsync(file2);
-          setContent(contentTxt);
 
           // Do something with the file contents
-          console.log(content);
-          // console.log(content2);
-          search(content);
+          console.log('Content String from permissions: '+contentTxt);
+          search(contentTxt);
           // return content
         } catch (error) {
             console.warn('File System/Permission Error: \n'+ error);
@@ -92,6 +86,12 @@ function App({route,navigation}) {
       let price = 0.00;
       let vat = 0.00;
       const tax = 0.125;
+
+      const barcode = String(route.params.barcode.text);
+      console.log('Search Barcode: '+ barcode);
+
+      // setContent(data);
+      // console.log('Content State: '+content);
     
       let i = 0;
       const searchItemData = [];
@@ -135,6 +135,8 @@ function App({route,navigation}) {
       for (let index = 0; index < searchContent.length; index++) {
         if (itemNumIndex != -1) {
           console.log("Content Row: " + searchContent[index]);
+          console.log("Content Row - ItemNum: " + searchContent[index][0])
+          console.log("Content Row - Barcode: " + barcode);
           if (searchContent[index][itemNumIndex] == barcode) {
               searchItemData[i] = searchContent[index];
               // console.log('searchItemData in loop: '+ searchItemData[i]);
@@ -192,7 +194,7 @@ function App({route,navigation}) {
         setItemData(['000','Item not found','0.00']);
       }
 
-      return itemData
+      // return itemData
     };
   
     // Launch the search function and
@@ -218,7 +220,7 @@ function App({route,navigation}) {
         const timeout = setTimeout(() => {
           // isFocused = false;
           alert('Going Back To Scanner');
-          navigation.goBack('Scanner'); // the name of the screen you want to navigate to
+          navigation.navigate('Scanner'); // the name of the screen you want to navigate to
         }, 10000); // the number of milliseconds you want to wait before navigating 
       });
     }, [navigation]);

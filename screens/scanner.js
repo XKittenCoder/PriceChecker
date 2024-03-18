@@ -103,6 +103,13 @@ export default function App({navigation}) {
         defaultValue={text}
         activeUnderlineColor='red'
       />
+      {/* <TextInput 
+        style={styles.border}
+        placeholder='Please scan an item'
+        onChangeText={setText}
+        defaultValue={text}
+        activeUnderlineColor='red'
+      /> */}
       <ScrollView styles={styles.buttonContainer} rowGap={30} >
         <Button title='See Item Info' onPress={() => navigation.navigate('Info', { barcode: {text} }) } />
         {/* {scanned && <Button title={'Scan Again?'} onPress={() => setScanned(false) && setText('Not scanned yet')} color='tomato' />} */}
